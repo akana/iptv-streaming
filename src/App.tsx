@@ -1,24 +1,47 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css'
+import ReactPlayer from 'react-player';
+import { M3uMedia, M3uParser } from 'm3u-parser-generator';
 
 function App() {
-  const [count, setCount] = useState(0)
+  let [playlist, setPlaylist] = useState<M3uMedia[]>([]);
+  let [selectedPlaylist, setSelectedPlaylist] = useState<string>("");
+  useEffect(() => {
+    fetch("https://raw.githubusercontent.com/iptv-org/iptv/master/streams/kh.m3u").then(async (res) => {
+      let playlistString = await res.text();
+      let playlistLocation = M3uParser.parse(playlistString).medias;
+      setPlaylist(playlistLocation);
+      setSelectedPlaylist(playlistLocation[0].location);
+    }).catch((err) => {
+      console.log(err);
+    });
 
+  }, []);
   return (
-    <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    playlist.length == 0 ?
+      <>Loading...</> :
+      <>
+        <select onChange={(e) => {
+          setSelectedPlaylist(e.target.value);
+        }
+        }>
+          {playlist.map((item, index) => {
+            return <option key={index} value={item.location}>{item.name}</option>
+          })}
+        </select>
+        <ReactPlayer url={selectedPlaylist}
+          config={{
+            file: {
+              forceHLS: true,
+              hlsOptions: {
+                autoStartLoad: true,
+              }
+            }
+          }}
+          controls
+          playing
+        />
+      </>
   )
 }
 
